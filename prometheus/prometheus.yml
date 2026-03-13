@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: computex-backend
+    static_configs:
+      - targets: ["backend:4000"]
+    metrics_path: /metrics
+
+  - job_name: computex-python
+    static_configs:
+      - targets: ["python_service:8000"]
+    metrics_path: /metrics
