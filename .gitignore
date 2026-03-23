@@ -26,8 +26,6 @@ cpp_engine/engine
 cpp_engine/engine.exe
 
 # Generated artifacts
-backend/output/*
-!backend/output/.gitkeep
 backend/static/artifacts/*
 !backend/static/artifacts/.gitkeep
 backend/static/uploads/*

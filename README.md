@@ -1,8 +1,10 @@
 # Computex ML Platform
 
-This project is a local full-stack machine learning pipeline.
+This project is a polished local full-stack machine learning pipeline for the final submission.
 
 The browser handles CSV preview and schema selection. Node.js handles auth, uploads, static files, and MongoDB history. Python is the orchestrator for graph generation and artifact storage. C++ performs the actual regression computation on CPU or GPU.
+
+The backend now binds on the network as well, so devices on the same Wi-Fi or LAN can open the app using the laptop IP and port.
 
 ## Final Architecture
 
@@ -13,6 +15,17 @@ MongoDB stores:
 - users
 - sessions
 - history
+
+## Active Project Folders
+
+Only these folders are part of the final active project flow:
+
+- `frontend/public`
+- `backend/src`
+- `backend/static`
+- `python_service/app`
+- `cpp_engine/include`
+- `cpp_engine/src`
 
 ## Main Idea
 
@@ -83,6 +96,60 @@ Important backend files:
 - send jobs to Python
 - store finished history in MongoDB
 - delete history and related local files
+
+## Request Handling Architecture
+
+The current local implementation is the direct version:
+
+1. The browser sends the request to Node.js.
+2. Node.js validates auth, stores the uploaded CSV, and forwards the payload to Python.
+3. Python prepares the frame, launches the C++ engine, creates graphs, and returns the final result.
+4. Node.js stores the returned result in MongoDB history and sends it back to the browser.
+
+This is the version that runs now on your laptop.
+
+### Intended Queue-Based Architecture
+
+The intended scalable architecture for the same project is:
+
+1. Node.js receives the browser request.
+2. Node.js creates a unique `jobId`.
+3. Node.js stores a MongoDB job/history record with status such as `queued`.
+4. Node.js places the job into a queue.
+5. One available Python worker picks the next queued job.
+6. That Python worker launches one dedicated C++ worker process for that job.
+7. The Python worker writes prepared CSV, result JSON, graph HTML, and pickle files using the same `jobId`.
+8. The Python worker marks the job as completed with that same `jobId`.
+9. Node.js reads the completed job and returns or exposes the correct result to the browser.
+
+### How Multiple Python And C++ Workers Fit
+
+- Multiple Python workers are the orchestration layer.
+- Each Python worker handles one queued job at a time.
+- Each active Python worker can launch one native C++ worker process for its current job.
+- So if there are 4 Python workers, there can be up to 4 C++ jobs running in parallel, depending on CPU, RAM, and GPU limits.
+
+In a deployed version, Python workers can be created by:
+
+- running FastAPI/Uvicorn with multiple workers
+- or running separate Python queue-consumer processes
+
+The C++ workers are created per job by the Python worker that owns that job.
+
+### How Node.js Knows Which Output Belongs To Which Request
+
+Node.js should not guess based on worker number. It should match by `jobId`.
+
+The matching flow is:
+
+- Node.js creates a unique `jobId`
+- Node.js stores that `jobId` in MongoDB
+- Node.js sends the same `jobId` to Python
+- Python uses the same `jobId` in prepared CSV, result JSON, graph, and pickle filenames
+- Python reports completion using the same `jobId`
+- Node.js updates the exact MongoDB record for that `jobId`
+
+So even if multiple Python workers and multiple C++ worker processes run at the same time, the result belongs to the request whose `jobId` matches.
 
 ## Python Orchestrator
 
@@ -297,6 +364,7 @@ These are no longer part of the active flow:
 - Grafana
 - Nginx
 - React/Vite runtime
+- legacy temp-output flow outside `backend/static`
 
 ## Local Storage Layout
 
@@ -319,7 +387,17 @@ Run MongoDB locally on:
 
 ### Root `.env`
 
+The real runtime file is the repo-root `.env`.
+
+The backend loads:
+
+1. root `.env`
+2. `backend/.env` only as fallback for missing values
+
+So in normal use, edit the root `.env`.
+
 ```env
+HOST=0.0.0.0
 MONGO_URI=mongodb://localhost:27017/computex_ml
 JWT_SECRET=change_me
 PYTHON_SERVICE_URL=http://localhost:8000
@@ -335,6 +413,11 @@ cd backend
 npm install
 node src/server.js
 ```
+
+By default the backend listens on:
+
+- `http://localhost:4000` on the laptop
+- `http://<laptop-ip>:4000` for other devices on the same network
 
 ### Python
 
@@ -370,6 +453,33 @@ If your installed OpenBLAS is Win32, build the engine as Win32 or rebuild OpenBL
 ```bash
 run_all.bat
 ```
+
+The backend window prints the same-network URLs automatically.
+
+## Use From Another Device On The Same Network
+
+1. Start MongoDB, Python, and the backend on the laptop.
+2. Keep the backend host as `0.0.0.0` in the root `.env`, or just use the default.
+3. In the backend terminal, note the printed LAN URL such as `http://192.168.1.23:4000`.
+4. On another phone, tablet, or laptop connected to the same Wi-Fi, open that URL in the browser.
+5. If the device cannot connect, allow Node.js through Windows Firewall on the laptop.
+
+## Test Note
+
+The source-level backend tests were removed from the final submission to keep the project lean.
+
+During development, route tests were useful for checking:
+
+- invalid register input
+- valid register response shape
+- invalid login rejection
+- valid login token response
+
+For the final project repo, the running application code is kept and the separate test files/tooling are removed.
+
+## File-By-File Flow
+
+For a detailed walkthrough of the files, diagrams, request flow, intended queue model, and the role of each file, see [overview.md](overview.md).
 
 ## One-Line Explanation
 

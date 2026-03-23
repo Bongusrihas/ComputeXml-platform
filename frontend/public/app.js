@@ -708,8 +708,8 @@ function renderPredictionField(field, value) {
 
   if (inputType === "select" && Array.isArray(field.options) && field.options.length) {
     return `
-      <label>
-        ${safeName}
+      <label class="prediction-field">
+        <span class="prediction-field-name">${safeName}</span>
         <select class="prediction-input" data-feature-name="${safeName}">
           <option value="">Choose</option>
           ${field.options
@@ -726,8 +726,8 @@ function renderPredictionField(field, value) {
 
   if (inputType === "number") {
     return `
-      <label>
-        ${safeName}
+      <label class="prediction-field">
+        <span class="prediction-field-name">${safeName}</span>
         <input
           class="prediction-input"
           data-feature-name="${safeName}"
@@ -742,8 +742,8 @@ function renderPredictionField(field, value) {
   }
 
   return `
-    <label>
-      ${safeName}
+    <label class="prediction-field">
+      <span class="prediction-field-name">${safeName}</span>
       <input
         class="prediction-input"
         data-feature-name="${safeName}"
@@ -774,17 +774,17 @@ function renderPredictionSummary(prediction) {
   if (prediction.model === "logistic_regression") {
     return `
       <div class="meta-strip">
-        <span><strong>Prediction:</strong> ${escapeHtml(prediction.predicted_label || "n/a")}</span>
-        <span><strong>Probability:</strong> ${escapeHtml(Number(prediction.class_probability || 0).toFixed(4))}</span>
-        <span><strong>Threshold:</strong> ${escapeHtml(prediction.threshold ?? DEFAULT_LOGISTIC_THRESHOLD)}</span>
-        <span><strong>Positive Label:</strong> ${escapeHtml(prediction.positive_label || "n/a")}</span>
+        <span><strong>Prediction:</strong> <span class="prediction-summary-value">${escapeHtml(prediction.predicted_label || "n/a")}</span></span>
+        <span><strong>Probability:</strong> <span class="prediction-summary-value">${escapeHtml(Number(prediction.class_probability || 0).toFixed(4))}</span></span>
+        <span><strong>Threshold:</strong> <span class="prediction-summary-value">${escapeHtml(prediction.threshold ?? DEFAULT_LOGISTIC_THRESHOLD)}</span></span>
+        <span><strong>Positive Label:</strong> <span class="prediction-summary-value">${escapeHtml(prediction.positive_label || "n/a")}</span></span>
       </div>
     `;
   }
 
   return `
     <div class="meta-strip">
-      <span><strong>Prediction:</strong> ${escapeHtml(prediction.prediction ?? "n/a")}</span>
+      <span><strong>Prediction:</strong> <span class="prediction-summary-value">${escapeHtml(prediction.prediction ?? "n/a")}</span></span>
     </div>
   `;
 }
@@ -827,7 +827,7 @@ function renderResultView(prediction = null, predictionError = "", formState = n
     predictionSchema.length
       ? `
         <div class="prediction-scroll">
-          <div class="grid two">
+          <div class="prediction-grid">
             ${predictionSchema
               .map((field) => renderPredictionField(field, activeFormState.values?.[field.name] ?? ""))
               .join("")}
@@ -839,9 +839,9 @@ function renderResultView(prediction = null, predictionError = "", formState = n
   const logisticControls =
     isLogistic && predictionSchema.length
       ? `
-        <div class="grid two">
-          <label>
-            Threshold
+        <div class="prediction-grid">
+          <label class="prediction-field">
+            <span class="prediction-field-name">Threshold</span>
             <input
               id="logistic-threshold"
               type="number"
@@ -851,8 +851,8 @@ function renderResultView(prediction = null, predictionError = "", formState = n
               value="${escapeHtml(activeFormState.threshold || String(logisticInfo.defaultThreshold))}"
             />
           </label>
-          <label>
-            Positive Label
+          <label class="prediction-field">
+            <span class="prediction-field-name">Positive Label</span>
             <select id="positive-label">
               ${logisticInfo.labels
                 .map(
@@ -919,9 +919,10 @@ async function runPrediction() {
     return;
   }
 
+  const inputMap = new Map(inputs.map((node) => [node.dataset.featureName, node]));
   const rawInputs = {};
   for (const field of predictionSchema) {
-    const input = inputs.find((node) => node.dataset.featureName === field.name);
+    const input = inputMap.get(field.name);
     const rawValue = input?.value?.trim() || "";
     currentFormState.values[field.name] = rawValue;
 

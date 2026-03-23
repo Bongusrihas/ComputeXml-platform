@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
@@ -24,7 +25,23 @@ dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false });
 
 const app = express();
 const port = process.env.PORT || 4000;
+const host = process.env.HOST || "0.0.0.0";
 const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/computex_ml";
+
+function getLanUrls(portNumber) {
+  const urls = new Set();
+  const networks = os.networkInterfaces();
+
+  for (const addresses of Object.values(networks)) {
+    for (const address of addresses || []) {
+      if (address.family === "IPv4" && !address.internal) {
+        urls.add(`http://${address.address}:${portNumber}`);
+      }
+    }
+  }
+
+  return [...urls];
+}
 
 if (!fs.existsSync(staticDir)) {
   fs.mkdirSync(staticDir, { recursive: true });
@@ -83,6 +100,18 @@ app.get("*", (_req, res) => {
   res.sendFile(path.join(frontendDir, "index.html"));
 });
 
-app.listen(port, () => {
+app.listen(port, host, () => {
   console.log(`Backend listening on http://localhost:${port}`);
+
+  if (host !== "127.0.0.1" && host !== "localhost") {
+    const lanUrls = getLanUrls(port);
+
+    if (lanUrls.length) {
+      console.log("Same-network access:");
+      for (const url of lanUrls) {
+        console.log(`  ${url}`);
+      }
+      console.log("If another device cannot connect, allow Node.js through Windows Firewall.");
+    }
+  }
 });

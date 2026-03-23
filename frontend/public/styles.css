@@ -43,6 +43,12 @@ body {
   gap: 16px;
 }
 
+.panel-head,
+.action-row,
+.history-card-head {
+  flex-wrap: wrap;
+}
+
 .topbar {
   margin-bottom: 24px;
 }
@@ -192,6 +198,19 @@ button:disabled {
   gap: 12px;
 }
 
+.history-card h3,
+.meta-strip span,
+.prediction-field-name,
+.prediction-summary-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.history-card-head > div:first-child,
+.history-card-head > div:last-child {
+  min-width: 0;
+}
+
 .history-actions {
   display: flex;
   flex-wrap: wrap;
@@ -279,10 +298,33 @@ th {
 }
 
 .prediction-scroll {
-  max-height: 320px;
+  max-width: 100%;
+  max-height: min(55vh, 420px);
   overflow-x: auto;
   overflow-y: auto;
-  padding-right: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.prediction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.prediction-grid > * {
+  min-width: 0;
+}
+
+.prediction-field {
+  min-width: 0;
+}
+
+.prediction-field-name {
+  display: block;
 }
 
 .prediction-note {
@@ -301,6 +343,13 @@ th {
   flex-wrap: wrap;
   gap: 12px;
   padding: 14px 16px;
+}
+
+.prediction-box,
+#result-view {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .session-bar {

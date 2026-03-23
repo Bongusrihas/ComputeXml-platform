@@ -22,15 +22,17 @@ if not exist "%ENGINE_PATH%" (
 
 echo Starting local Computex services from %ROOT%
 echo Make sure MongoDB is running on mongodb://localhost:27017/
+echo This laptop will serve the app on localhost and on the same network.
 
 echo [1/2] Python Service
 start "Computex Python" cmd /k "cd /d %ROOT%python_service && if not exist .venv py -3.13 -m venv .venv && call .venv\Scripts\activate && pip install -r requirements.txt && set CPLUS_ENGINE_PATH=%ENGINE_PATH% && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 echo [2/2] Backend + Frontend
-start "Computex Backend" cmd /k "cd /d %ROOT%backend && npm install && node src/server.js"
+start "Computex Backend" cmd /k "cd /d %ROOT%backend && npm install && set HOST=0.0.0.0 && node src/server.js"
 
 timeout /t 3 >nul
 start "" http://localhost:4000
 
 echo Browser opened at http://localhost:4000
+echo Check the backend window for same-network URLs like http://192.168.x.x:4000
 endlocal
