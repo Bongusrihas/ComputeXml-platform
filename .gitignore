@@ -1,6 +1,7 @@
 # Global
 .env
 *.log
+presentation.txt
 
 # Node
 node_modules/
@@ -17,6 +18,8 @@ python_service/venv/
 
 # C++
 cpp_engine/build/
+cpp_engine/build_win32/
+cpp_engine/build_win32_test/
 cpp_engine/*.o
 cpp_engine/*.obj
 cpp_engine/engine
@@ -25,6 +28,10 @@ cpp_engine/engine.exe
 # Generated artifacts
 backend/output/*
 !backend/output/.gitkeep
+backend/static/artifacts/*
+!backend/static/artifacts/.gitkeep
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
 python_service/artifacts/
 
 # OS / IDE

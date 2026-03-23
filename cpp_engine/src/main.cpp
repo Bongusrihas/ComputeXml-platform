@@ -5,50 +5,62 @@
 #include <stdexcept>
 #include <string>
 
-#include "cublas_models.hpp"
-#include "openblas_models.hpp"
+#include "linear_cublas.hpp"
+#include "linear_open.hpp"
+#include "logistic_cublas.hpp"
+#include "logistic_open.hpp"
 #include "parser.hpp"
 
-using computex::ParseOptions;
-using computex::ParsedData;
-using computex::RawTable;
-using computex::TrainResult;
+namespace {
 
-static std::string readAll(const std::string& path) {
-  std::ifstream in(path);
-  if (!in.is_open()) throw std::runtime_error("Cannot open input JSON: " + path);
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  return ss.str();
+std::string readAll(const std::string& path) {
+  std::ifstream input(path);
+  if (!input.is_open()) {
+    throw std::runtime_error("Cannot open job file: " + path);
+  }
+
+  std::ostringstream stream;
+  stream << input.rdbuf();
+  return stream.str();
 }
 
-static std::string extractString(const std::string& text, const std::string& key) {
-  std::regex re("\\\"" + key + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
-  std::smatch m;
-  if (std::regex_search(text, m, re)) return m[1];
+std::string extractString(const std::string& text, const std::string& key) {
+  std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
+  std::smatch match;
+  if (std::regex_search(text, match, pattern)) {
+    return match[1];
+  }
   return "";
 }
 
-static std::string toJsonResult(const TrainResult& res, const std::string& model,
-                                const std::string& hardware, std::size_t rows,
-                                std::size_t cols) {
-  std::ostringstream out;
-  out << "{";
-  out << "\"status\":\"ok\",";
-  out << "\"model\":\"" << model << "\",";
-  out << "\"hardware\":\"" << hardware << "\",";
-  out << "\"rows\":" << rows << ",";
-  out << "\"cols\":" << cols << ",";
-  out << "\"rmse\":" << res.rmse << ",";
-  out << "\"accuracy\":" << res.accuracy << ",";
-  out << "\"model_coefficients\":[";
-  for (std::size_t i = 0; i < res.coefficients.size(); ++i) {
-    if (i) out << ",";
-    out << res.coefficients[i];
+std::string toJson(const computex::TrainResult& result, const std::string& model,
+                   const std::string& hardware, std::size_t rows, std::size_t cols) {
+  std::ostringstream stream;
+  stream << "{";
+  stream << "\"status\":\"ok\",";
+  stream << "\"model\":\"" << model << "\",";
+  stream << "\"variant\":\"" << result.variant << "\",";
+  stream << "\"hardware\":\"" << hardware << "\",";
+  stream << "\"rows\":" << rows << ",";
+  stream << "\"cols\":" << cols << ",";
+  stream << "\"rmse\":" << result.rmse << ",";
+  stream << "\"mae\":" << result.mae << ",";
+  stream << "\"mse\":" << result.mse << ",";
+  stream << "\"r2\":" << result.r2 << ",";
+  stream << "\"accuracy\":" << result.accuracy << ",";
+  stream << "\"precision\":" << result.precision << ",";
+  stream << "\"recall\":" << result.recall << ",";
+  stream << "\"f1\":" << result.f1 << ",";
+  stream << "\"model_coefficients\":[";
+  for (std::size_t index = 0; index < result.coefficients.size(); ++index) {
+    if (index) stream << ",";
+    stream << result.coefficients[index];
   }
-  out << "]}";
-  return out.str();
+  stream << "]}";
+  return stream.str();
 }
+
+}  // namespace
 
 int main(int argc, char** argv) {
   try {
@@ -57,51 +69,54 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    const std::string inPath = argv[1];
-    const std::string outPath = argv[2];
-    const std::string inJson = readAll(inPath);
+    const std::string inputPath = argv[1];
+    const std::string outputPath = argv[2];
+    const std::string jobJson = readAll(inputPath);
 
-    const std::string hardwareReq = extractString(inJson, "hardware");
-    const std::string model = extractString(inJson, "model");
-    const std::string storedFile = extractString(inJson, "stored_file");
-    const std::string nulls = extractString(inJson, "nulls");
-    const std::string fill = extractString(inJson, "fill");
-    const std::string removeNulls = extractString(inJson, "remove_nulls");
+    const std::string hardwareRequest = extractString(jobJson, "hardware");
+    const std::string model = extractString(jobJson, "model");
+    const std::string storedPath = extractString(jobJson, "stored_path");
+    const std::string fillNulls = extractString(jobJson, "nulls");
+    const std::string numericFill = extractString(jobJson, "fill");
+    const std::string removeNulls = extractString(jobJson, "remove_nulls");
 
-    ParseOptions options;
-    options.fillNulls = nulls != "no";
-    options.numericFill = fill.empty() ? "mean" : fill;
+    computex::ParseOptions options;
+    options.fillNulls = fillNulls != "no";
+    options.numericFill = numericFill.empty() ? "mean" : numericFill;
     options.removeNullRows = removeNulls == "remove";
     options.stringFill = "mode";
 
-    const std::string csvPath = "/app/input_output/" + storedFile;
-    RawTable table = computex::parseCsvStream(csvPath);
+    computex::RawTable table = computex::parseCsvStream(storedPath);
     computex::fillNullsInPlace(table, options);
-    ParsedData data = computex::toNumericDataset(table);
+    computex::ParsedData data = computex::toNumericDataset(table);
 
-    TrainResult result;
-    std::string actualHardware = hardwareReq == "gpu" ? "gpu" : "cpu";
+    computex::TrainResult result;
+    std::string actualHardware = hardwareRequest == "gpu" ? "gpu" : "cpu";
+    const bool isLogistic = model == "logistic_regression";
 
     if (actualHardware == "gpu") {
       try {
-        result = computex::trainCuBlas(model, data.X, data.y);
+        result = isLogistic ? computex::trainLogisticCuBlas(data.X, data.y)
+                            : computex::trainLinearCuBlas(data.X, data.y);
       } catch (...) {
         actualHardware = "cpu";
-        result = computex::trainOpenBlas(model, data.X, data.y);
+        result = isLogistic ? computex::trainLogisticOpen(data.X, data.y)
+                            : computex::trainLinearOpen(data.X, data.y);
       }
     } else {
-      result = computex::trainOpenBlas(model, data.X, data.y);
+      result = isLogistic ? computex::trainLogisticOpen(data.X, data.y)
+                          : computex::trainLinearOpen(data.X, data.y);
     }
 
-    std::string output = toJsonResult(result, model, actualHardware, data.rows, data.cols);
-
-    std::ofstream out(outPath);
-    out << output;
-
+    std::ofstream output(outputPath);
+    output << toJson(result, model, actualHardware, data.rows, data.cols);
     return 0;
-  } catch (const std::exception& ex) {
-    std::ofstream out(argv[2]);
-    out << "{\"status\":\"error\",\"message\":\"" << ex.what() << "\"}";
+  } catch (const std::exception& error) {
+    if (argc >= 3) {
+      std::ofstream output(argv[2]);
+      output << "{\"status\":\"error\",\"message\":\"" << error.what() << "\"}";
+    }
+    std::cerr << error.what() << "\n";
     return 1;
   }
 }

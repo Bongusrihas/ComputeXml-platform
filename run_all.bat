@@ -2,17 +2,35 @@
 setlocal
 
 set ROOT=%~dp0
+set ENGINE_RELEASE=%ROOT%cpp_engine\build\Release\engine.exe
+set ENGINE_DEBUG=%ROOT%cpp_engine\build\engine.exe
+set ENGINE_RELEASE_WIN32=%ROOT%cpp_engine\build_win32\Release\engine.exe
+set ENGINE_DEBUG_WIN32=%ROOT%cpp_engine\build_win32\engine.exe
+set ENGINE_PATH=%ENGINE_RELEASE%
 
-echo Starting Computex services from %ROOT%
+if not exist "%ENGINE_PATH%" (
+  set ENGINE_PATH=%ENGINE_DEBUG%
+)
 
-echo [1/3] Backend
-start "Computex Backend" cmd /k "cd /d %ROOT%backend && if not exist node_modules npm install && npm run dev"
+if not exist "%ENGINE_PATH%" (
+  set ENGINE_PATH=%ENGINE_RELEASE_WIN32%
+)
 
-echo [2/3] Python Service
-start "Computex Python" cmd /k "cd /d %ROOT%python_service && if not exist .venv (py -3.11 -m venv .venv) && call .venv\Scripts\activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+if not exist "%ENGINE_PATH%" (
+  set ENGINE_PATH=%ENGINE_DEBUG_WIN32%
+)
 
-echo [3/3] Frontend
-start "Computex Frontend" cmd /k "cd /d %ROOT%frontend && if not exist node_modules npm install && npm run dev"
+echo Starting local Computex services from %ROOT%
+echo Make sure MongoDB is running on mongodb://localhost:27017/
 
-echo All services launched in separate terminals.
+echo [1/2] Python Service
+start "Computex Python" cmd /k "cd /d %ROOT%python_service && if not exist .venv py -3.13 -m venv .venv && call .venv\Scripts\activate && pip install -r requirements.txt && set CPLUS_ENGINE_PATH=%ENGINE_PATH% && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+echo [2/2] Backend + Frontend
+start "Computex Backend" cmd /k "cd /d %ROOT%backend && npm install && node src/server.js"
+
+timeout /t 3 >nul
+start "" http://localhost:4000
+
+echo Browser opened at http://localhost:4000
 endlocal

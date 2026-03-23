@@ -1,10 +1,22 @@
 #pragma once
 
-#include <map>
 #include <string>
 #include <vector>
 
 namespace computex {
+
+struct TrainResult {
+  std::vector<double> coefficients;
+  double rmse = 0.0;
+  double mae = 0.0;
+  double mse = 0.0;
+  double r2 = 0.0;
+  double accuracy = 0.0;
+  double precision = 0.0;
+  double recall = 0.0;
+  double f1 = 0.0;
+  std::string variant = "simple_linear";
+};
 
 struct ParsedData {
   std::vector<std::vector<double>> X;

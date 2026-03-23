@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Computex ML Platform</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local Machine Learning Pipeline</p>
+          <h1>Computex ML Platform</h1>
+        </div>
+        <div id="session-bar" class="session-bar hidden">
+          <span id="session-user"></span>
+          <button id="logout-btn" class="secondary-btn" type="button">Logout</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="auth-view" class="auth-grid">
+          <article class="panel auth-panel">
+            <div class="tab-row">
+              <button id="show-register" class="tab" type="button">Register</button>
+              <button id="show-login" class="tab active" type="button">Login</button>
+            </div>
+
+            <form id="register-form" class="stack hidden">
+              <label>
+                Name
+                <input id="register-name" type="text" placeholder="Enter your name" />
+              </label>
+              <label>
+                Email
+                <input id="register-email" type="email" placeholder="Enter your email" />
+              </label>
+              <label>
+                Password
+                <input id="register-password" type="password" placeholder="Minimum 6 characters" />
+              </label>
+              <button type="submit">Create Account</button>
+            </form>
+
+            <form id="login-form" class="stack hidden">
+              <label>
+                Email
+                <input id="login-email" type="email" placeholder="Enter your email" />
+              </label>
+              <label>
+                Password
+                <input id="login-password" type="password" placeholder="Enter your password" />
+              </label>
+              <button type="submit">Login</button>
+            </form>
+
+            <p id="auth-error" class="error hidden"></p>
+          </article>
+
+          <article class="panel info-panel">
+            <h2>What This Project Does</h2>
+            <ul class="plain-list">
+              <li>Frontend reads the CSV in the browser and lets you edit the schema.</li>
+              <li>Node.js handles auth, sessions, routes, uploads, and MongoDB history.</li>
+              <li>Python prepares graphs and orchestrates the real compute step.</li>
+              <li>C++ performs the actual training for CPU and GPU paths.</li>
+            </ul>
+          </article>
+        </section>
+
+        <section id="app-view" class="hidden">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Saved Runs</p>
+                <h2>History</h2>
+              </div>
+            </div>
+            <div id="history-list" class="history-list">
+              <p class="muted">No history yet. Submit a CSV to create the first entry.</p>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Frontend Work</p>
+                <h2>Upload CSV</h2>
+              </div>
+            </div>
+
+            <div class="grid two">
+              <label>
+                Select CSV file
+                <input id="file-input" type="file" accept=".csv" />
+              </label>
+              <div class="metric-box">
+                <p>Rows: <strong id="row-count">0</strong></p>
+                <p>Columns: <strong id="column-count">0</strong></p>
+              </div>
+            </div>
+
+            <div class="grid three settings-grid">
+              <label>
+                Fill nulls
+                <select id="fill-nulls">
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <label>
+                Numeric fill
+                <select id="numeric-fill">
+                  <option value="mean">Mean</option>
+                  <option value="median">Median</option>
+                </select>
+              </label>
+              <label>
+                Null rows
+                <select id="remove-nulls">
+                  <option value="keep">Keep null rows</option>
+                  <option value="remove">Remove null rows</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="grid two settings-grid">
+              <label>
+                String fill
+                <select id="string-fill">
+                  <option value="mode">Mode</option>
+                </select>
+              </label>
+              <label>
+                Model
+                <select id="model-select">
+                  <option value="linear_regression">Linear Regression</option>
+                  <option value="logistic_regression">Logistic Regression</option>
+                </select>
+              </label>
+            </div>
+
+            <div id="progress-wrap" class="hidden">
+              <div class="progress"><div id="progress-bar"></div></div>
+              <p id="progress-text" class="muted"></p>
+            </div>
+
+            <div id="preview-wrap" class="hidden">
+              <h3>First 5 Rows</h3>
+              <div class="table-wrap">
+                <table id="preview-table"></table>
+              </div>
+
+              <h3>Column Settings</h3>
+              <div class="table-wrap">
+                <table id="columns-table"></table>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button id="submit-btn" type="button">Run Pipeline</button>
+            </div>
+
+            <p id="upload-error" class="error hidden"></p>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Saved Result</p>
+                <h2>Graphs And Prediction</h2>
+              </div>
+            </div>
+            <div id="result-view">
+              <p class="muted">Pick a history item or submit a new CSV to see the graphs and prediction section.</p>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <footer class="watermark">Bongu Srihas</footer>
+
+    <script src="/papaparse.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

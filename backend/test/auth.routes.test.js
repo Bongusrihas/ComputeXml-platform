@@ -2,17 +2,22 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const findOneMock = vi.fn();
 const createMock = vi.fn();
+const hashMock = vi.fn(() => Promise.resolve("hashed-password"));
+const compareMock = vi.fn();
 
-vi.mock("../src/services/login.model.js", () => ({
-  LoginAuth: {
+vi.mock("../src/services/user.model.js", () => ({
+  User: {
+    findOne: findOneMock,
     create: createMock
   }
 }));
 
-vi.mock("jsonwebtoken", () => ({
+vi.mock("bcryptjs", () => ({
   default: {
-    sign: vi.fn(() => "test-token")
+    hash: hashMock,
+    compare: compareMock
   }
 }));
 
@@ -21,44 +26,90 @@ const { default: authRoutes } = await import("../src/routes/auth.routes.js");
 function makeApp() {
   const app = express();
   app.use(express.json());
+  app.use((req, _res, next) => {
+    req.session = {};
+    req.session.destroy = (callback) => callback();
+    next();
+  });
   app.use("/auth", authRoutes);
   return app;
 }
 
-describe("auth login route", () => {
+describe("auth routes", () => {
   beforeEach(() => {
+    findOneMock.mockReset();
     createMock.mockReset();
+    compareMock.mockReset();
+    hashMock.mockClear();
   });
 
-  it("returns 400 for missing name", async () => {
+  it("rejects incomplete register payloads", async () => {
     const app = makeApp();
-    const res = await request(app).post("/auth/login").send({});
+    const res = await request(app).post("/auth/register").send({ name: "Srihas" });
+
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Name is required");
+    expect(res.body.error).toContain("required");
   });
 
-  it("creates mongo login record and returns token", async () => {
-    createMock.mockResolvedValue({ _id: "abc123" });
+  it("creates a user during register", async () => {
+    findOneMock.mockResolvedValue(null);
+    createMock.mockResolvedValue({
+      _id: "user-1",
+      name: "Srihas",
+      email: "srihas@example.com"
+    });
+
     const app = makeApp();
+    const res = await request(app).post("/auth/register").send({
+      name: "Srihas",
+      email: "srihas@example.com",
+      password: "secret12"
+    });
 
-    const res = await request(app)
-      .post("/auth/login")
-      .set("User-Agent", "vitest")
-      .send({ name: "Srihas" });
-
-    expect(res.status).toBe(200);
-    expect(res.body.token).toBe("test-token");
-    expect(res.body.login_id).toBe("abc123");
+    expect(res.status).toBe(201);
+    expect(res.body.user.name).toBe("Srihas");
+    expect(res.body.user.email).toBe("srihas@example.com");
+    expect(res.body.token).toBeTruthy();
     expect(createMock).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 500 when mongo write fails", async () => {
-    createMock.mockRejectedValue(new Error("db down"));
+  it("rejects bad login credentials", async () => {
+    findOneMock.mockResolvedValue({
+      _id: "user-1",
+      name: "Srihas",
+      email: "srihas@example.com",
+      passwordHash: "hashed-password"
+    });
+    compareMock.mockResolvedValue(false);
+
     const app = makeApp();
+    const res = await request(app).post("/auth/login").send({
+      email: "srihas@example.com",
+      password: "wrongpass"
+    });
 
-    const res = await request(app).post("/auth/login").send({ name: "Srihas" });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toContain("Invalid");
+  });
 
-    expect(res.status).toBe(500);
-    expect(res.body.error).toContain("Login save failed");
+  it("returns auth payload on login", async () => {
+    findOneMock.mockResolvedValue({
+      _id: "user-1",
+      name: "Srihas",
+      email: "srihas@example.com",
+      passwordHash: "hashed-password"
+    });
+    compareMock.mockResolvedValue(true);
+
+    const app = makeApp();
+    const res = await request(app).post("/auth/login").send({
+      email: "srihas@example.com",
+      password: "secret12"
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.name).toBe("Srihas");
+    expect(res.body.token).toBeTruthy();
+    expect(res.body.expiresAt).toBeTruthy();
   });
 });
