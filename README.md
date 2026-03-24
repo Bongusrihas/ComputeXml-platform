@@ -1,6 +1,6 @@
 # Computex ML Platform
 
-This project is a polished local full-stack machine learning pipeline for the final submission.
+This project is a polished  full-stack machine learning pipeline for the final submission.
 
 The browser handles CSV preview and schema selection. Node.js handles auth, uploads, static files, and MongoDB history. Python is the orchestrator for graph generation and artifact storage. C++ performs the actual regression computation on CPU or GPU.
 
@@ -174,7 +174,7 @@ Important file:
 Manual prediction now supports:
 
 - numeric inputs as doubles
-- string inputs such as `Sex` and `Embarked`
+- string inputs 
 
 Python saves the feature encoding rules when the pipeline runs. During prediction it applies the same saved encoding rules again before scoring the model.
 
@@ -355,18 +355,9 @@ The project uses both JWT and server-side sessions.
 - the session stays active until logout or backend expiry
 - the old session countdown timer has been removed
 
-## Removed Parts
 
-These are no longer part of the active flow:
 
-- Docker
-- Prometheus
-- Grafana
-- Nginx
-- React/Vite runtime
-- legacy temp-output flow outside `backend/static`
-
-## Local Storage Layout
+##  Storage Layout
 
 - `backend/static/uploads`
   uploaded CSV files
@@ -379,12 +370,6 @@ These are no longer part of the active flow:
 
 ## Local Setup
 
-### MongoDB
-
-Run MongoDB locally on:
-
-`mongodb://localhost:27017/`
-
 ### Root `.env`
 
 The real runtime file is the repo-root `.env`.
@@ -394,16 +379,7 @@ The backend loads:
 1. root `.env`
 2. `backend/.env` only as fallback for missing values
 
-So in normal use, edit the root `.env`.
 
-```env
-HOST=0.0.0.0
-MONGO_URI=mongodb://localhost:27017/computex_ml
-JWT_SECRET=change_me
-PYTHON_SERVICE_URL=http://localhost:8000
-SESSION_TTL_MS=31536000000
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX=100
 ```
 
 ### Backend
@@ -448,19 +424,13 @@ cmake --build build --config Release
 
 If your installed OpenBLAS is Win32, build the engine as Win32 or rebuild OpenBLAS for x64.
 
-### Run Everything
 
-```bash
-run_all.bat
-```
-
-The backend window prints the same-network URLs automatically.
 
 ## Use From Another Device On The Same Network
 
 1. Start MongoDB, Python, and the backend on the laptop.
 2. Keep the backend host as `0.0.0.0` in the root `.env`, or just use the default.
-3. In the backend terminal, note the printed LAN URL such as `http://192.168.1.23:4000`.
+3. In the backend terminal, note the printed LAN URL such as `http://ip:4000`.
 4. On another phone, tablet, or laptop connected to the same Wi-Fi, open that URL in the browser.
 5. If the device cannot connect, allow Node.js through Windows Firewall on the laptop.
 
@@ -483,4 +453,4 @@ For a detailed walkthrough of the files, diagrams, request flow, intended queue 
 
 ## One-Line Explanation
 
-This project is a local ML pipeline where the browser prepares the schema, Node.js manages auth and history, Python orchestrates artifacts and prediction schemas, and C++ performs the real regression computation from data that is loaded once into RAM and computed natively.
+This project is a  ML pipeline where the browser prepares the schema, Node.js manages auth and history, Python orchestrates artifacts and prediction schemas, and C++ performs the real regression computation from data that is loaded once into RAM and computed natively.

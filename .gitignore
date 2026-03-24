@@ -15,6 +15,7 @@ __pycache__/
 venv/
 python_service/.venv/
 python_service/venv/
+python_service/.env
 
 # C++
 cpp_engine/build/

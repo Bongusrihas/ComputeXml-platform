@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const pythonUrl = process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
+const pythonUrl = process.env.PYTHON_SERVICE_URL || "http://localhost:8000/api";
 
 export async function callPythonService(payload) {
   const response = await axios.post(`${pythonUrl}/schedule`, payload, {
